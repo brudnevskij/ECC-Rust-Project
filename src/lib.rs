@@ -1,10 +1,9 @@
 use num_bigint::BigUint;
 use std::cmp::PartialEq;
 use std::fmt::{Display, Formatter};
-use std::ops::Sub;
 
-#[derive(Debug)]
-enum Point {
+#[derive(Debug, Clone)]
+pub enum Point {
     Coordinates(BigUint, BigUint),
     Identity,
 }
@@ -18,7 +17,7 @@ impl Display for Point {
     }
 }
 
-struct EllipticCurve {
+pub struct EllipticCurve {
     // y^2=x^2+a*x+b
     a: BigUint,
     b: BigUint,
@@ -36,7 +35,7 @@ impl PartialEq for Point {
 }
 
 impl EllipticCurve {
-    fn add(&self, r: &Point, q: &Point) -> Point {
+    pub fn add(&self, r: &Point, q: &Point) -> Point {
         assert!(self.is_on_curve(r), "Point {} is not on curve", r);
         assert!(self.is_on_curve(q), "Point {} is not on curve", q);
         assert_ne!(r, q, "Points should not be the same");
@@ -65,7 +64,7 @@ impl EllipticCurve {
         }
     }
 
-    fn double(&self, c: &Point) -> Point {
+    pub fn double(&self, c: &Point) -> Point {
         assert!(self.is_on_curve(c), "Point {} is not on curve", c);
 
         match c {
@@ -85,7 +84,7 @@ impl EllipticCurve {
         }
     }
 
-    fn calculate_x3_y3(&self,lambda: &BigUint, x1: &BigUint, x2: &BigUint, y1: &BigUint) -> (BigUint,BigUint){
+    pub fn calculate_x3_y3(&self,lambda: &BigUint, x1: &BigUint, x2: &BigUint, y1: &BigUint) -> (BigUint,BigUint){
         let f = FiniteField{p:self.p.clone()};
 
         let lambda_sq = f.mul(&lambda, &lambda);
@@ -96,8 +95,17 @@ impl EllipticCurve {
         (x3, y3)
     }
 
-    fn scalar_mul(&self, r: &Point, q: &Point) {
-        todo!()
+    pub fn scalar_mul(&self, c: &Point, d: &BigUint) -> Point{
+        assert!(self.is_on_curve(c), "Point {} is not on curve", c);
+
+        let mut t = (*c).clone();
+        for i in (0..(d.bits()-1)).rev() {
+            t= self.double(&t);
+            if d.bit(i){
+                t = self.add(&t, &c);
+            }
+        }
+        t
     }
 
     pub fn is_on_curve(&self, c: &Point) -> bool {
@@ -112,29 +120,29 @@ impl EllipticCurve {
     }
 }
 
-struct FiniteField {
+pub struct FiniteField {
     p: BigUint,
 }
 
 impl FiniteField {
-    fn add(&self, a: &BigUint, b: &BigUint) -> BigUint {
+    pub fn add(&self, a: &BigUint, b: &BigUint) -> BigUint {
         let sum = a + b;
         sum.modpow(&BigUint::from(1u32), &self.p)
     }
-    fn mul(&self, a: &BigUint, b: &BigUint) -> BigUint {
+    pub fn mul(&self, a: &BigUint, b: &BigUint) -> BigUint {
         let product = a * b;
         product.modpow(&BigUint::from(1u32), &self.p)
     }
 
-    fn sub(&self, a: &BigUint, b: &BigUint) -> BigUint {
+    pub fn sub(&self, a: &BigUint, b: &BigUint) -> BigUint {
         self.add(a, &self.inv_add(b))
     }
 
-    fn div(&self, a: &BigUint, b: &BigUint) -> BigUint {
+    pub fn div(&self, a: &BigUint, b: &BigUint) -> BigUint {
         self.mul(a, &self.inv_mul(b))
     }
 
-    fn inv_add(&self, n: &BigUint) -> BigUint {
+    pub fn inv_add(&self, n: &BigUint) -> BigUint {
         assert!(
             n < &self.p,
             "number: {} is bigger or equal than modulus {}",
@@ -144,7 +152,7 @@ impl FiniteField {
         &self.p - n
     }
 
-    fn inv_mul(&self, n: &BigUint) -> BigUint {
+    pub fn inv_mul(&self, n: &BigUint) -> BigUint {
         n.modpow(&(&self.p - BigUint::from(2u32)), &self.p)
     }
 }
@@ -365,4 +373,32 @@ mod test {
         let _ = ec.double(&p2);
     }
 
+
+    #[test]
+    fn test_scalar_mul(){
+        let ec = EllipticCurve {
+            a: BigUint::from(2u32),
+            b: BigUint::from(2u32),
+            p: BigUint::from(17u32),
+        };
+
+        // 2 (5,1) = (6,3)
+        let p1 = Point::Coordinates(BigUint::from(5u32), BigUint::from(1u32));
+        let r = Point::Coordinates(BigUint::from(6u32), BigUint::from(3u32));
+        let product = ec.scalar_mul(&p1,&BigUint::from(2u32));
+        assert_eq!(r, product);
+
+
+        // 10 (5,1) = (7,11)
+        let p1 = Point::Coordinates(BigUint::from(5u32), BigUint::from(1u32));
+        let r = Point::Coordinates(BigUint::from(7u32), BigUint::from(11u32));
+        let product = ec.scalar_mul(&p1,&BigUint::from(10u32));
+        assert_eq!(r, product);
+
+        // 19 (5,1) = e
+        let p1 = Point::Coordinates(BigUint::from(5u32), BigUint::from(1u32));
+        let r = Point::Identity;
+        let product = ec.scalar_mul(&p1,&BigUint::from(19u32));
+        assert_eq!(r, product)
+    }
 }
