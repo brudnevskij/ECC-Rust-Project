@@ -123,10 +123,8 @@ mod test {
         let f = FiniteField {
             p: BigUint::from(11u32),
         };
-
         let a = BigUint::from(4u32);
         let b = BigUint::from(10u32);
-
         let sum = f.add(&a, &b);
 
         assert_eq!(sum, BigUint::from(3u32));
@@ -137,10 +135,8 @@ mod test {
         let f = FiniteField {
             p: BigUint::from(32u32),
         };
-
         let a = BigUint::from(4u32);
         let b = BigUint::from(10u32);
-
         let sum = f.add(&a, &b);
 
         assert_eq!(sum, BigUint::from(14u32));
@@ -151,11 +147,8 @@ mod test {
         let f = FiniteField {
             p: BigUint::from(11u32),
         };
-
         let a = BigUint::from(4u32);
         let b = BigUint::from(10u32);
-        let p = BigUint::from(11u32);
-
         let prod = f.mul(&a, &b);
 
         assert_eq!(prod, BigUint::from(7u32));
@@ -166,9 +159,7 @@ mod test {
         let f = FiniteField {
             p: BigUint::from(51u32),
         };
-
         let a = BigUint::from(4u32);
-
         let prod = f.inv_add(&a);
 
         assert_eq!(prod, BigUint::from(47u32));
@@ -180,9 +171,7 @@ mod test {
         let f = FiniteField {
             p: BigUint::from(51u32),
         };
-
         let a = BigUint::from(52u32);
-
         let _ = f.inv_add(&a);
     }
 
@@ -191,12 +180,44 @@ mod test {
         let f = FiniteField {
             p: BigUint::from(11u32),
         };
-
         let a = BigUint::from(4u32);
-
         let prod = f.inv_mul(&a);
-
         assert_eq!(prod, BigUint::from(3u32));
+    }
+
+
+    #[test]
+    fn test_sub(){
+        let f = FiniteField {
+            p: BigUint::from(11u32),
+        };
+        let a = BigUint::from(10u32);
+        let b = BigUint::from(4u32);
+        let prod = f.sub(&a, &b);
+        assert_eq!(prod, BigUint::from(6u32));
+    }
+
+
+    #[test]
+    fn test_sub_1(){
+        let f = FiniteField {
+            p: BigUint::from(11u32),
+        };
+        let a = BigUint::from(4u32);
+        let b = BigUint::from(10u32);
+        let prod = f.sub(&a, &b);
+        assert_eq!(prod, BigUint::from(5u32));
+    }
+
+    #[test]
+    fn tes_div(){
+        let f = FiniteField {
+            p: BigUint::from(11u32),
+        };
+        let a = BigUint::from(4u32);
+        let b = BigUint::from(10u32);
+        let prod = f.div(&a, &b);
+        assert_eq!(prod, BigUint::from(7u32));
     }
 
     #[test]
