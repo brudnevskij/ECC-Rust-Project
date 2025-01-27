@@ -211,9 +211,60 @@ mod test {
         let p1 = Point::Coordinates(BigUint::from(6u32), BigUint::from(3u32));
         let p2 = Point::Coordinates(BigUint::from(5u32), BigUint::from(1u32));
         let r = Point::Coordinates(BigUint::from(10u32), BigUint::from(6u32));
-
         let sum = ec.add(&p1, &p2);
-
         assert_eq!(r, sum);
+
+        let p1 = Point::Coordinates(BigUint::from(6u32), BigUint::from(3u32));
+        let p2 = Point::Identity;
+        let sum = ec.add(&p1, &p2);
+        assert_eq!(p1, sum);
+
+        let p1 = Point::Identity;
+        let p2 = Point::Coordinates(BigUint::from(6u32), BigUint::from(3u32));
+        let sum = ec.add(&p1, &p2);
+        assert_eq!(p2, sum);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_ec_point_addition_same_points_assertion() {
+        let ec = EllipticCurve {
+            a: BigUint::from(2u32),
+            b: BigUint::from(2u32),
+            p: BigUint::from(17u32),
+        };
+
+        let p1 = Point::Identity;
+        let p2 = Point::Identity;
+        let _ = ec.add(&p1, &p2);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_ec_point_addition_p1_not_on_curve_assertion() {
+        let ec = EllipticCurve {
+            a: BigUint::from(2u32),
+            b: BigUint::from(2u32),
+            p: BigUint::from(17u32),
+        };
+
+        let p1 = Point::Coordinates(BigUint::from(63u32), BigUint::from(3u32));
+        let p2 = Point::Identity;
+        let _ = ec.add(&p1, &p2);
+    }
+
+
+    #[test]
+    #[should_panic]
+    fn test_ec_point_addition_p2_not_on_curve_assertion() {
+        let ec = EllipticCurve {
+            a: BigUint::from(2u32),
+            b: BigUint::from(2u32),
+            p: BigUint::from(17u32),
+        };
+
+        let p1 = Point::Identity;
+        let p2 = Point::Coordinates(BigUint::from(63u32), BigUint::from(3u32));
+        let _ = ec.add(&p1, &p2);
     }
 }
