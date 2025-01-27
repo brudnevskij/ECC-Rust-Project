@@ -330,4 +330,38 @@ mod test {
         let p2 = Point::Coordinates(BigUint::from(63u32), BigUint::from(3u32));
         let _ = ec.add(&p1, &p2);
     }
+
+    #[test]
+    fn test_point_doubling(){
+        let ec = EllipticCurve {
+            a: BigUint::from(2u32),
+            b: BigUint::from(2u32),
+            p: BigUint::from(17u32),
+        };
+
+        // (5,1) + (5,1) = (6,3)
+        let p1 = Point::Coordinates(BigUint::from(5u32), BigUint::from(1u32));
+        let r = Point::Coordinates(BigUint::from(6u32), BigUint::from(3u32));
+        let sum = ec.double(&p1);
+        assert_eq!(r, sum);
+
+        let p1 = Point::Identity;
+        let r = Point::Identity;
+        let sum = ec.double(&p1);
+        assert_eq!(r, sum);
+
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_point_doubling_on_curve_assertion() {
+        let ec = EllipticCurve {
+            a: BigUint::from(2u32),
+            b: BigUint::from(2u32),
+            p: BigUint::from(17u32),
+        };
+        let p2 = Point::Coordinates(BigUint::from(63u32), BigUint::from(3u32));
+        let _ = ec.double(&p2);
+    }
+
 }
