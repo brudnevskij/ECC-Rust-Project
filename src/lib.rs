@@ -46,11 +46,22 @@ impl EllipticCurve {
             (Point::Coordinates(x, y), Point::Identity) => Point::Coordinates(x.clone(), y.clone()),
             (Point::Coordinates(x1, y1), Point::Coordinates(x2, y2)) => {
                 let f = FiniteField { p: self.p.clone() };
+
+                // logic for reflected points
+                let y_sum = f.add(y1, y2);
+                if x1==x2 && y_sum == BigUint::from(0u32){
+                    return Point::Identity;
+                }
+
+                // point calculation
+                // x3 = lambda^2 - x1 -x2 (mod p)
                 let d_y = f.sub(y2, y1);
                 let d_x = f.sub(x2, x1);
                 let lambda = f.div(&d_y, &d_x);
                 let lambda_sq = lambda.modpow(&BigUint::from(2u32), &self.p);
                 let x3 = f.sub(&f.sub(&lambda_sq, x1), x2);
+
+                // y3 = lambda(x1 - x3) - y1 (mod p)
                 let y3 = f.sub(&f.mul(&lambda, &f.sub(x1, &x3)), y1);
                 Point::Coordinates(x3, y3)
             }
@@ -235,15 +246,25 @@ mod test {
         let sum = ec.add(&p1, &p2);
         assert_eq!(r, sum);
 
+        // e + (6,3) = (6,3)
         let p1 = Point::Coordinates(BigUint::from(6u32), BigUint::from(3u32));
         let p2 = Point::Identity;
         let sum = ec.add(&p1, &p2);
         assert_eq!(p1, sum);
 
+        // (6,3) + e = (6,3)
         let p1 = Point::Identity;
         let p2 = Point::Coordinates(BigUint::from(6u32), BigUint::from(3u32));
         let sum = ec.add(&p1, &p2);
         assert_eq!(p2, sum);
+
+        // Reflected points
+        // (6,3) + (6,-3) = e
+        let f = FiniteField{ p: BigUint::from(17u32) };
+        let p1 = Point::Coordinates(BigUint::from(6u32), BigUint::from(3u32));
+        let p2 = Point::Coordinates(BigUint::from(6u32), f.inv_add(&BigUint::from(3u32)));
+        let sum = ec.add(&p1, &p2);
+        assert_eq!(sum, Point::Identity);
     }
 
     #[test]
