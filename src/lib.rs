@@ -57,13 +57,8 @@ impl EllipticCurve {
                 let d_y = f.sub(y2, y1);
                 let d_x = f.sub(x2, x1);
                 let lambda = f.div(&d_y, &d_x);
-                let lambda_sq = lambda.modpow(&BigUint::from(2u32), &self.p);
 
-                // x3 = lambda^2 - x1 -x2 (mod p)
-                let x3 = f.sub(&f.sub(&lambda_sq, x1), x2);
-
-                // y3 = lambda(x1 - x3) - y1 (mod p)
-                let y3 = f.sub(&f.mul(&lambda, &f.sub(x1, &x3)), y1);
+                let (x3,y3) = self.calculate_x3_y3(&lambda, x1, x2, y1);
                 Point::Coordinates(x3, y3)
             }
             (Point::Identity, Point::Identity) => Point::Identity,
@@ -83,16 +78,22 @@ impl EllipticCurve {
                 let numerator = f.add(&f.mul(&x_sq, &BigUint::from(3u32)), &self.a);
                 let denominator = f.mul(&BigUint::from(2u32), y);
                 let lambda = f.div(&numerator, &denominator);
-                let lambda_sq = f.mul(&lambda, &lambda);
 
-                // x2 = lambda^2 - 2x1
-                let x2 = f.sub(&lambda_sq, &f.mul(&BigUint::from(2u32), x));
-
-                // y2 = lambda(x1 - x2) - y1
-                let y2 = f.sub(&f.mul(&f.sub(x, &x2), &lambda), y);
+                let (x2,y2) = self.calculate_x3_y3(&lambda, x, x, y);
                 Point::Coordinates(x2, y2)
             }
         }
+    }
+
+    fn calculate_x3_y3(&self,lambda: &BigUint, x1: &BigUint, x2: &BigUint, y1: &BigUint) -> (BigUint,BigUint){
+        let f = FiniteField{p:self.p.clone()};
+
+        let lambda_sq = f.mul(&lambda, &lambda);
+        // x3 = lambda^2 - x1 -x2 (mod p)
+        let x3 = f.sub(&f.sub(&lambda_sq, x1), x2);
+        // y3 = lambda(x1 - x3) - y1 (mod p)
+        let y3 = f.sub(&f.mul(&lambda, &f.sub(x1, &x3)), y1);
+        (x3, y3)
     }
 
     fn scalar_mul(&self, r: &Point, q: &Point) {
