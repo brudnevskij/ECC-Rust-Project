@@ -49,16 +49,17 @@ impl EllipticCurve {
 
                 // logic for reflected points
                 let y_sum = f.add(y1, y2);
-                if x1==x2 && y_sum == BigUint::from(0u32){
+                if x1 == x2 && y_sum == BigUint::from(0u32) {
                     return Point::Identity;
                 }
 
-                // point calculation
-                // x3 = lambda^2 - x1 -x2 (mod p)
+                // lambda = (y2 - y1) / (x2 - x1)
                 let d_y = f.sub(y2, y1);
                 let d_x = f.sub(x2, x1);
                 let lambda = f.div(&d_y, &d_x);
                 let lambda_sq = lambda.modpow(&BigUint::from(2u32), &self.p);
+
+                // x3 = lambda^2 - x1 -x2 (mod p)
                 let x3 = f.sub(&f.sub(&lambda_sq, x1), x2);
 
                 // y3 = lambda(x1 - x3) - y1 (mod p)
@@ -69,8 +70,29 @@ impl EllipticCurve {
         }
     }
 
-    fn double(&self, r: &Point, q: &Point) {
-        todo!()
+    fn double(&self, c: &Point) -> Point {
+        assert!(self.is_on_curve(c), "Point {} is not on curve", c);
+
+        match c {
+            Point::Identity => Point::Identity,
+            Point::Coordinates(x, y) => {
+                let f = FiniteField { p: self.p.clone() };
+
+                // lambda = (3x^2 + a) / 2y
+                let x_sq = f.mul(x, x);
+                let numerator = f.add(&f.mul(&x_sq, &BigUint::from(3u32)), &self.a);
+                let denominator = f.mul(&BigUint::from(2u32), y);
+                let lambda = f.div(&numerator, &denominator);
+                let lambda_sq = f.mul(&lambda, &lambda);
+
+                // x2 = lambda^2 - 2x1
+                let x2 = f.sub(&lambda_sq, &f.mul(&BigUint::from(2u32), x));
+
+                // y2 = lambda(x1 - x2) - y1
+                let y2 = f.sub(&f.mul(&f.sub(x, &x2), &lambda), y);
+                Point::Coordinates(x2, y2)
+            }
+        }
     }
 
     fn scalar_mul(&self, r: &Point, q: &Point) {
@@ -196,9 +218,8 @@ mod test {
         assert_eq!(prod, BigUint::from(3u32));
     }
 
-
     #[test]
-    fn test_sub(){
+    fn test_sub() {
         let f = FiniteField {
             p: BigUint::from(11u32),
         };
@@ -208,9 +229,8 @@ mod test {
         assert_eq!(prod, BigUint::from(6u32));
     }
 
-
     #[test]
-    fn test_sub_1(){
+    fn test_sub_1() {
         let f = FiniteField {
             p: BigUint::from(11u32),
         };
@@ -221,7 +241,7 @@ mod test {
     }
 
     #[test]
-    fn tes_div(){
+    fn tes_div() {
         let f = FiniteField {
             p: BigUint::from(11u32),
         };
@@ -260,7 +280,9 @@ mod test {
 
         // Reflected points
         // (6,3) + (6,-3) = e
-        let f = FiniteField{ p: BigUint::from(17u32) };
+        let f = FiniteField {
+            p: BigUint::from(17u32),
+        };
         let p1 = Point::Coordinates(BigUint::from(6u32), BigUint::from(3u32));
         let p2 = Point::Coordinates(BigUint::from(6u32), f.inv_add(&BigUint::from(3u32)));
         let sum = ec.add(&p1, &p2);
@@ -294,7 +316,6 @@ mod test {
         let p2 = Point::Identity;
         let _ = ec.add(&p1, &p2);
     }
-
 
     #[test]
     #[should_panic]
