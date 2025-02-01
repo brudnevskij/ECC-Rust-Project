@@ -70,6 +70,11 @@ impl EllipticCurve {
         match c {
             Point::Identity => Point::Identity,
             Point::Coordinates(x, y) => {
+                // if P = Q, y = y => 2P = e
+                if y == &BigUint::from(0u32){
+                    return Point::Identity;
+                }
+
                 let f = FiniteField { p: self.p.clone() };
 
                 // lambda = (3x^2 + a) / 2y
@@ -157,7 +162,7 @@ impl FiniteField {
     }
 }
 
-mod test {
+mod ff_test {
     use super::*;
 
     #[test]
@@ -259,6 +264,11 @@ mod test {
         let prod = f.div(&a, &b);
         assert_eq!(prod, BigUint::from(7u32));
     }
+
+}
+
+mod ec_test {
+    use super::*;
 
     #[test]
     fn test_ec_point_addition() {
