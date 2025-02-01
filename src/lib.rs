@@ -401,4 +401,37 @@ mod test {
         let product = ec.scalar_mul(&p1,&BigUint::from(19u32));
         assert_eq!(r, product)
     }
+
+    #[test]
+    fn test_ec_secp256k1(){
+        /*
+            https://en.bitcoin.it/wiki/Secp256k1
+            p = FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFE FFFFFC2F
+            a = 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+            b = 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000007
+
+            G = {
+                    x = 79BE667E F9DCBBAC 55A06295 CE870B07 029BFCDB 2DCE28D9 59F2815B 16F81798,
+                    y = 483ADA77 26A3C465 5DA4FBFC 0E1108A8 FD17B448 A6855419 9C47D08F FB10D4B8
+                }
+            n = FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFE BAAEDCE6 AF48A03B BFD25E8C D0364141
+        */
+
+        let p = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).expect("could not convert str to p");
+        let a = BigUint::parse_bytes(b"0000000000000000000000000000000000000000000000000000000000000000", 16).expect("could not convert str to a");
+        let b = BigUint::parse_bytes(b"0000000000000000000000000000000000000000000000000000000000000007", 16).expect("could not convert str to b");
+        let n = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).expect("could not convert str to n");
+        let gx = BigUint::parse_bytes(b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16).expect("could not convert str to gx");
+        let gy = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).expect("could not convert str to gy");
+
+        let ec = EllipticCurve{
+            a,
+            b,
+            p,
+        };
+        let g = Point::Coordinates(gx,gy);
+        let res = ec.scalar_mul(&g,&n);
+        // n * g = I, n is an order of the group
+        assert_eq!(Point::Identity, res);
+    }
 }
