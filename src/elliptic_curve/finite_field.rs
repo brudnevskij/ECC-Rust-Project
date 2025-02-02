@@ -38,7 +38,7 @@ impl FiniteField {
 }
 
 mod ff_test {
-    use super::{FiniteField, BigUint};
+    use super::{BigUint, FiniteField};
 
     #[test]
     fn test_add() {
@@ -139,5 +139,4 @@ mod ff_test {
         let prod = f.div(&a, &b);
         assert_eq!(prod, BigUint::from(7u32));
     }
-
 }

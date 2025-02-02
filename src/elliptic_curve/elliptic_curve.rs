@@ -1,8 +1,6 @@
 use super::finite_field::FiniteField;
-use std::fmt::{Display, Formatter};
 use num_bigint::BigUint;
-
-
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone)]
 pub enum Point {
@@ -21,9 +19,9 @@ impl Display for Point {
 
 pub struct EllipticCurve {
     // y^2=x^2+a*x+b
-    a: BigUint,
-    b: BigUint,
-    p: BigUint,
+    pub a: BigUint,
+    pub b: BigUint,
+    pub p: BigUint,
 }
 
 impl PartialEq for Point {
@@ -59,7 +57,7 @@ impl EllipticCurve {
                 let d_x = f.sub(x2, x1);
                 let lambda = f.div(&d_y, &d_x);
 
-                let (x3,y3) = self.calculate_x3_y3(&lambda, x1, x2, y1);
+                let (x3, y3) = self.calculate_x3_y3(&lambda, x1, x2, y1);
                 Point::Coordinates(x3, y3)
             }
             (Point::Identity, Point::Identity) => Point::Identity,
@@ -73,7 +71,7 @@ impl EllipticCurve {
             Point::Identity => Point::Identity,
             Point::Coordinates(x, y) => {
                 // if P = Q, y = y => 2P = e
-                if y == &BigUint::from(0u32){
+                if y == &BigUint::from(0u32) {
                     return Point::Identity;
                 }
 
@@ -85,14 +83,20 @@ impl EllipticCurve {
                 let denominator = f.mul(&BigUint::from(2u32), y);
                 let lambda = f.div(&numerator, &denominator);
 
-                let (x2,y2) = self.calculate_x3_y3(&lambda, x, x, y);
+                let (x2, y2) = self.calculate_x3_y3(&lambda, x, x, y);
                 Point::Coordinates(x2, y2)
             }
         }
     }
 
-    pub fn calculate_x3_y3(&self,lambda: &BigUint, x1: &BigUint, x2: &BigUint, y1: &BigUint) -> (BigUint,BigUint){
-        let f = FiniteField{p:self.p.clone()};
+    pub fn calculate_x3_y3(
+        &self,
+        lambda: &BigUint,
+        x1: &BigUint,
+        x2: &BigUint,
+        y1: &BigUint,
+    ) -> (BigUint, BigUint) {
+        let f = FiniteField { p: self.p.clone() };
 
         let lambda_sq = f.mul(&lambda, &lambda);
         // x3 = lambda^2 - x1 -x2 (mod p)
@@ -102,13 +106,13 @@ impl EllipticCurve {
         (x3, y3)
     }
 
-    pub fn scalar_mul(&self, c: &Point, d: &BigUint) -> Point{
+    pub fn scalar_mul(&self, c: &Point, d: &BigUint) -> Point {
         assert!(self.is_on_curve(c), "Point {} is not on curve", c);
 
         let mut t = (*c).clone();
-        for i in (0..(d.bits()-1)).rev() {
-            t= self.double(&t);
-            if d.bit(i){
+        for i in (0..(d.bits() - 1)).rev() {
+            t = self.double(&t);
+            if d.bit(i) {
                 t = self.add(&t, &c);
             }
         }
@@ -127,9 +131,8 @@ impl EllipticCurve {
     }
 }
 
-
 mod ec_test {
-    use super::{EllipticCurve, FiniteField, BigUint, Point};
+    use super::{BigUint, EllipticCurve, FiniteField, Point};
 
     #[test]
     fn test_ec_point_addition() {
@@ -212,7 +215,7 @@ mod ec_test {
     }
 
     #[test]
-    fn test_point_doubling(){
+    fn test_point_doubling() {
         let ec = EllipticCurve {
             a: BigUint::from(2u32),
             b: BigUint::from(2u32),
@@ -229,7 +232,6 @@ mod ec_test {
         let r = Point::Identity;
         let sum = ec.double(&p1);
         assert_eq!(r, sum);
-
     }
 
     #[test]
@@ -244,9 +246,8 @@ mod ec_test {
         let _ = ec.double(&p2);
     }
 
-
     #[test]
-    fn test_scalar_mul(){
+    fn test_scalar_mul() {
         let ec = EllipticCurve {
             a: BigUint::from(2u32),
             b: BigUint::from(2u32),
@@ -256,25 +257,24 @@ mod ec_test {
         // 2 (5,1) = (6,3)
         let p1 = Point::Coordinates(BigUint::from(5u32), BigUint::from(1u32));
         let r = Point::Coordinates(BigUint::from(6u32), BigUint::from(3u32));
-        let product = ec.scalar_mul(&p1,&BigUint::from(2u32));
+        let product = ec.scalar_mul(&p1, &BigUint::from(2u32));
         assert_eq!(r, product);
-
 
         // 10 (5,1) = (7,11)
         let p1 = Point::Coordinates(BigUint::from(5u32), BigUint::from(1u32));
         let r = Point::Coordinates(BigUint::from(7u32), BigUint::from(11u32));
-        let product = ec.scalar_mul(&p1,&BigUint::from(10u32));
+        let product = ec.scalar_mul(&p1, &BigUint::from(10u32));
         assert_eq!(r, product);
 
         // 19 (5,1) = e
         let p1 = Point::Coordinates(BigUint::from(5u32), BigUint::from(1u32));
         let r = Point::Identity;
-        let product = ec.scalar_mul(&p1,&BigUint::from(19u32));
+        let product = ec.scalar_mul(&p1, &BigUint::from(19u32));
         assert_eq!(r, product)
     }
 
     #[test]
-    fn test_ec_secp256k1(){
+    fn test_ec_secp256k1() {
         /*
             https://en.bitcoin.it/wiki/Secp256k1
             p = FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFE FFFFFC2F
@@ -288,20 +288,40 @@ mod ec_test {
             n = FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFE BAAEDCE6 AF48A03B BFD25E8C D0364141
         */
 
-        let p = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16).expect("could not convert str to p");
-        let a = BigUint::parse_bytes(b"0000000000000000000000000000000000000000000000000000000000000000", 16).expect("could not convert str to a");
-        let b = BigUint::parse_bytes(b"0000000000000000000000000000000000000000000000000000000000000007", 16).expect("could not convert str to b");
-        let n = BigUint::parse_bytes(b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16).expect("could not convert str to n");
-        let gx = BigUint::parse_bytes(b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", 16).expect("could not convert str to gx");
-        let gy = BigUint::parse_bytes(b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", 16).expect("could not convert str to gy");
+        let p = BigUint::parse_bytes(
+            b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F",
+            16,
+        )
+        .expect("could not convert str to p");
+        let a = BigUint::parse_bytes(
+            b"0000000000000000000000000000000000000000000000000000000000000000",
+            16,
+        )
+        .expect("could not convert str to a");
+        let b = BigUint::parse_bytes(
+            b"0000000000000000000000000000000000000000000000000000000000000007",
+            16,
+        )
+        .expect("could not convert str to b");
+        let n = BigUint::parse_bytes(
+            b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141",
+            16,
+        )
+        .expect("could not convert str to n");
+        let gx = BigUint::parse_bytes(
+            b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798",
+            16,
+        )
+        .expect("could not convert str to gx");
+        let gy = BigUint::parse_bytes(
+            b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8",
+            16,
+        )
+        .expect("could not convert str to gy");
 
-        let ec = EllipticCurve{
-            a,
-            b,
-            p,
-        };
-        let g = Point::Coordinates(gx,gy);
-        let res = ec.scalar_mul(&g,&n);
+        let ec = EllipticCurve { a, b, p };
+        let g = Point::Coordinates(gx, gy);
+        let res = ec.scalar_mul(&g, &n);
         // n * g = I, n is an order of the group
         assert_eq!(Point::Identity, res);
     }

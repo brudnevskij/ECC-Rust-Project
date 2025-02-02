@@ -1,5 +1,5 @@
-mod finite_field;
 mod elliptic_curve;
+mod finite_field;
 
+pub use elliptic_curve::{EllipticCurve, Point};
 pub use finite_field::FiniteField;
-pub use elliptic_curve::{Point, EllipticCurve};
