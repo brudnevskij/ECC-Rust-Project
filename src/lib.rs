@@ -106,8 +106,46 @@ mod test {
         }
     }
 
+    fn get_secp256k1_ec() -> ECDSA {
+        let p = BigUint::parse_bytes(
+            b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F",
+            16,
+        )
+        .expect("could not convert str to p");
+        let a = BigUint::parse_bytes(
+            b"0000000000000000000000000000000000000000000000000000000000000000",
+            16,
+        )
+        .expect("could not convert str to a");
+        let b = BigUint::parse_bytes(
+            b"0000000000000000000000000000000000000000000000000000000000000007",
+            16,
+        )
+        .expect("could not convert str to b");
+        let n = BigUint::parse_bytes(
+            b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141",
+            16,
+        )
+        .expect("could not convert str to n");
+        let gx = BigUint::parse_bytes(
+            b"79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798",
+            16,
+        )
+        .expect("could not convert str to gx");
+        let gy = BigUint::parse_bytes(
+            b"483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8",
+            16,
+        )
+        .expect("could not convert str to gy");
+
+        ECDSA {
+            ec: EllipticCurve { a, b, p },
+            gen: Point::Coordinates(gx, gy),
+            order: n,
+        }
+    }
     #[test]
-    fn test_sign() {
+    fn test_sign_verify() {
         let ecdsa = get_test_ecdsa();
 
         let private_key = BigUint::from(7u32);
@@ -152,6 +190,77 @@ mod test {
         let k = BigUint::from(18u32);
         let signature = ecdsa.sign(&hash, &private_key, &k);
 
+        let (r, s) = signature;
+        let tempered_signature = (r + BigUint::from(1u32), s);
+        let verify_result = ecdsa.verify(&hash, &public_key, &tempered_signature);
+        assert!(!verify_result, "Verification is true")
+    }
+    #[test]
+    fn test_secp256k1_sign_verify() {
+        let ecdsa = get_secp256k1_ec();
+        let private_key = BigUint::parse_bytes(
+            b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364140",
+            16,
+        )
+        .expect("could not convert str to private_key");
+        let public_key = ecdsa.generate_public_key(&private_key);
+
+        let msg = "Bob transferring 1 coin to Alice";
+        let hash = ECDSA::generate_hash_less_than(msg, &ecdsa.order);
+        let k = BigUint::parse_bytes(
+            b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFAAAEBAAEDCE6AF48A03BBFD25E8CD0364141",
+            16,
+        )
+        .expect("could not convert str to k");
+        let signature = ecdsa.sign(&hash, &private_key, &k);
+
+        let verify_result = ecdsa.verify(&hash, &public_key, &signature);
+        assert!(verify_result, "Verification is false")
+    }
+
+    #[test]
+    fn test_secp256k1_tempered_message() {
+        let ecdsa = get_secp256k1_ec();
+        let private_key = BigUint::parse_bytes(
+            b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364140",
+            16,
+        )
+        .expect("could not convert str to private_key");
+        let public_key = ecdsa.generate_public_key(&private_key);
+
+        let msg = "Bob transferring 1 coin to Alice";
+        let hash = ECDSA::generate_hash_less_than(msg, &ecdsa.order);
+        let k = BigUint::parse_bytes(
+            b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFAAAEBAAEDCE6AF48A03BBFD25E8CD0364141",
+            16,
+        )
+        .expect("could not convert str to k");
+        let signature = ecdsa.sign(&hash, &private_key, &k);
+
+        let msg = "Bob transferring 100 coin to Alice";
+        let hash = ECDSA::generate_hash_less_than(msg, &ecdsa.order);
+        let verify_result = ecdsa.verify(&hash, &public_key, &signature);
+        assert!(!verify_result, "Verification is true")
+    }
+
+    #[test]
+    fn test_secp256k1_tempered_signature() {
+        let ecdsa = get_secp256k1_ec();
+        let private_key = BigUint::parse_bytes(
+            b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364140",
+            16,
+        )
+        .expect("could not convert str to private_key");
+        let public_key = ecdsa.generate_public_key(&private_key);
+
+        let msg = "Bob transferring 1 coin to Alice";
+        let hash = ECDSA::generate_hash_less_than(msg, &ecdsa.order);
+        let k = BigUint::parse_bytes(
+            b"FFFFFFFFFFFFFFFFFFFFFFFFFFFFAAAEBAAEDCE6AF48A03BBFD25E8CD0364141",
+            16,
+        )
+        .expect("could not convert str to k");
+        let signature = ecdsa.sign(&hash, &private_key, &k);
         let (r, s) = signature;
         let tempered_signature = (r + BigUint::from(1u32), s);
         let verify_result = ecdsa.verify(&hash, &public_key, &tempered_signature);
